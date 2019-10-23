@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -42,36 +43,42 @@ func main() {
 
 func simplifiedGarbled(w http.ResponseWriter, r *http.Request) {
 	var newContent content
+
 	var response resContent
+	response.Status = "false"
+	response.Content = ""
 
 	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		fmt.Fprintf(w, "Error!!")
+		json.NewEncoder(w).Encode(response)
 	}
 
-	response.Status = "false"
-	response.Content = ""
 	if json.Unmarshal(reqBody, &newContent) != nil {
+
 		json.NewEncoder(w).Encode(response)
 	} else {
+		fmt.Println(newContent)
+		decoded, err := base64.StdEncoding.DecodeString(newContent.Content)
+		if err == nil {
+			var bytes = []byte(decoded)
 
-		var bytes = []byte(newContent.Content)
-		t, _ := decodeGBK(bytes)
-		fmt.Println(string(t))
-		if !strings.Contains(chardet.Mostlike(bytes), "utf") &&
-			!strings.Contains(chardet.Mostlike(bytes), "utf16") {
+			if !strings.Contains(chardet.Mostlike(bytes), "utf") &&
+				!strings.Contains(chardet.Mostlike(bytes), "utf16") {
 
-			response.Status = "true"
+				response.Status = "true"
 
-			// GBK 2 UTF-8
-			s, _ := decodeGBK(bytes)
-			bomUtf8 := []byte{0xEF, 0xBB, 0xBF}
-			data := string(bomUtf8) + string(s)
+				// GBK 2 UTF-8
+				s, _ := decodeGBK(bytes)
+				bomUtf8 := []byte{0xEF, 0xBB, 0xBF}
+				data := string(bomUtf8) + string(s)
 
-			response.Content = data
+				encoded := base64.StdEncoding.EncodeToString([]byte(data))
+
+				response.Content = encoded
+			}
+
+			json.NewEncoder(w).Encode(response)
 		}
-
-		json.NewEncoder(w).Encode(response)
 	}
 }
 
