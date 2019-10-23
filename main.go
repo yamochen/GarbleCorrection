@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
+	"github.com/urfave/negroni"
 
 	"github.com/hydra13142/chardet"
 	"golang.org/x/text/encoding/simplifiedchinese"
@@ -38,7 +40,14 @@ func main() {
 	router.HandleFunc("/simplifiedGarbleds", simplifiedGarbleds).Methods("Post")
 	router.HandleFunc("/simplifiedGarbled", simplifiedGarbled).Methods("Post")
 
-	log.Fatal(http.ListenAndServe(":8080", router))
+	n := negroni.New()
+	n.Use(cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowCredentials: true,
+	}))
+	n.UseHandler(router)
+
+	log.Fatal(http.ListenAndServe(":8080", n))
 }
 
 func simplifiedGarbled(w http.ResponseWriter, r *http.Request) {
@@ -50,16 +59,20 @@ func simplifiedGarbled(w http.ResponseWriter, r *http.Request) {
 
 	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
+
 		json.NewEncoder(w).Encode(response)
 	}
 
-	if json.Unmarshal(reqBody, &newContent) != nil {
+	err = json.Unmarshal(reqBody, &newContent)
+	if err != nil {
 
 		json.NewEncoder(w).Encode(response)
 	} else {
-		fmt.Println(newContent)
+
 		decoded, err := base64.StdEncoding.DecodeString(newContent.Content)
+
 		if err == nil {
+			fmt.Println("Hi")
 			var bytes = []byte(decoded)
 
 			if !strings.Contains(chardet.Mostlike(bytes), "utf") &&
@@ -69,10 +82,10 @@ func simplifiedGarbled(w http.ResponseWriter, r *http.Request) {
 
 				// GBK 2 UTF-8
 				s, _ := decodeGBK(bytes)
-				bomUtf8 := []byte{0xEF, 0xBB, 0xBF}
-				data := string(bomUtf8) + string(s)
+				// bomUtf8 := []byte{0xEF, 0xBB, 0xBF}
+				// data := string(bomUtf8) + string(s)
 
-				encoded := base64.StdEncoding.EncodeToString([]byte(data))
+				encoded := base64.StdEncoding.EncodeToString([]byte(s))
 
 				response.Content = encoded
 			}
