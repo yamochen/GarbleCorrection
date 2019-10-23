@@ -12,7 +12,7 @@ function upload(){
 
     var reader = new FileReader();
     reader.onload = function(readerEvt) {
-        var binaryString = btoa(encodeURIComponent(readerEvt.target.result));
+        var binaryString = btoa(readerEvt.target.result);
         post(binaryString);
     };
     reader.readAsBinaryString(fileData);
@@ -24,7 +24,7 @@ function post(data){
         function (data) {
             $("#progressbar").width("70%");
             text = $.parseJSON(data); 
-            fixData = decodeURIComponent(escape(window.atob(text["Content"])));
+            fixData = text["Content"];
 
             var data = new Blob([fixData], {type: 'text/plain'});
             var url = window.URL.createObjectURL(data);

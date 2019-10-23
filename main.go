@@ -72,7 +72,6 @@ func simplifiedGarbled(w http.ResponseWriter, r *http.Request) {
 		decoded, err := base64.StdEncoding.DecodeString(newContent.Content)
 
 		if err == nil {
-			fmt.Println("Hi")
 			var bytes = []byte(decoded)
 
 			if !strings.Contains(chardet.Mostlike(bytes), "utf") &&
@@ -82,12 +81,10 @@ func simplifiedGarbled(w http.ResponseWriter, r *http.Request) {
 
 				// GBK 2 UTF-8
 				s, _ := decodeGBK(bytes)
-				// bomUtf8 := []byte{0xEF, 0xBB, 0xBF}
-				// data := string(bomUtf8) + string(s)
+				bomUtf8 := []byte{0xEF, 0xBB, 0xBF}
+				data := string(bomUtf8) + string(s)
 
-				encoded := base64.StdEncoding.EncodeToString([]byte(s))
-
-				response.Content = encoded
+				response.Content = data
 			}
 
 			json.NewEncoder(w).Encode(response)
